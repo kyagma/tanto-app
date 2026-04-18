@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>鑑定士 3-Loop Stratos -PROTO-</title>
+<title>鑑定士 3-Loop Stratos -CLOUD SYNC-</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
 <style>
   :root { 
     --primary: #0f172a; --accent: #2563eb; --success: #16a34a; --warning: #d97706;
@@ -17,6 +20,11 @@
   .header-subtitle { font-size: 0.85rem; color: #cbd5e1; }
   .header-title { font-size: 1.5rem; font-weight: bold; margin: 5px 0; }
   .status-badge { background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; display: inline-block; margin-top: 5px; }
+  
+  /* ローディング画面用 */
+  #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(15, 23, 42, 0.9); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
+  .spinner { border: 4px solid rgba(255,255,255,0.3); border-radius: 50%; border-top: 4px solid var(--accent); width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
   .nav { display: flex; background: var(--card); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
   .nav-btn { flex: 1; padding: 15px 0; text-align: center; font-weight: bold; cursor: pointer; border: none; background: none; color: var(--muted); border-bottom: 3px solid transparent; transition: 0.2s; font-size: 0.95rem; }
@@ -62,11 +70,9 @@
   .schedule-content { font-size: 0.85rem; color: var(--muted); line-height: 1.5; padding-left: 5px; margin-top: 5px;}
   .schedule-stats { font-size: 0.85rem; font-weight: bold; color: var(--accent); }
 
-  /* Sub Progress Bar */
   .progress-bar { background: #e2e8f0; border-radius: 8px; overflow: hidden; position: relative; }
   .progress-fill { height: 100%; width: 0%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
 
-  /* Dark Dashboard Widget */
   .dashboard-dark { background: #0f172a; border-radius: 16px; padding: 25px; color: #f8fafc; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
   .dashboard-title { text-align: center; font-size: 1.1rem; font-weight: bold; color: #cbd5e1; margin-bottom: 20px; }
   
@@ -81,7 +87,6 @@
   .ring-2 { stroke: var(--ring2); }
   .ring-3 { stroke: var(--ring3); }
   
-  /* --- Re-designed Breakdown Section --- */
   .loop-breakdown-container { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 30px; padding: 0 10px;}
   .loop-box { flex: 1; background: #1e293b; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; align-items: center; border-top: 3px solid; }
   .loop-box.b1 { border-top-color: var(--ring1); }
@@ -96,14 +101,9 @@
   .mini-bar-bg { flex: 1; background: #334155; height: 4px; border-radius: 2px; margin: 0 5px; overflow: hidden; }
   .mini-bar-pct { width: 22px; text-align: right; color: #cbd5e1; }
 
-  /* Total Stat Cards (Bottom) */
   .stat-card { background: #1e293b; border-radius: 10px; padding: 15px; margin-bottom: 10px; }
   .stat-card-title { font-size: 0.85rem; color: #94a3b8; display: flex; justify-content: space-between; margin-bottom: 8px; }
   .stat-bar-bg { background: #334155; height: 8px; border-radius: 4px; overflow: hidden; }
-
-  .backup-section { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 0.85rem; }
-  .backup-section input { width: calc(100% - 20px); padding: 8px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 4px; }
-  .btn-sm { background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 5px; }
 
   @media (max-width: 480px) {
     .task-title { font-size: 0.9rem; }
@@ -115,10 +115,15 @@
 </head>
 <body>
 
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div>クラウドと同期中...</div>
+</div>
+
 <div class="header">
   <div class="header-subtitle">不動産鑑定士 短答式試験</div>
   <div class="header-title">5月17日まで あと <span id="days-exam">--</span>日</div>
-  <div class="status-badge">目標 5/7 まで残り <span id="days-target">--</span>日 (プロト版)</div>
+  <div class="status-badge">目標 5/7 まで残り <span id="days-target">--</span>日 (Cloud Sync)</div>
   <button onclick="forceRecalculate()" style="position: absolute; top: 20px; right: 15px; background: rgba(0,0,0,0.2); color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">再計算🔄</button>
 </div>
 
@@ -159,32 +164,45 @@
 
   <div id="tab-schedule" class="tab-content">
     <div class="card">
-      <p style="font-size: 0.85rem; margin-top:0; color: var(--muted);">4/17にダミー履歴を設定しています。タップして内容を確認してください。</p>
+      <p style="font-size: 0.85rem; margin-top:0; color: var(--muted);">日付をタップすると、その日のタスク詳細ページへ移動します。<br>※PC/iPhone間でリアルタイムに同期されます。</p>
       <div id="schedule-container"></div>
     </div>
   </div>
 
   <div id="tab-progress" class="tab-content">
-    
     <div class="dashboard-dark" id="overall-progress-container">
       </div>
     
-    <div class="card" style="margin-top: 20px;">
-      <h2 style="margin-top:0; font-size: 1.1rem;">データの引継ぎ (バックアップ)</h2>
-      <div class="backup-section">
-        <label style="font-weight: bold;">現在の保存データ:</label>
-        <input type="text" id="export-data" readonly onclick="this.select()">
-        <br><br>
-        <label style="font-weight: bold;">データの復元:</label>
-        <input type="text" id="import-data" placeholder="ここにデータを貼り付けて「復元する」を押す">
-        <button class="btn-sm" onclick="importData()">復元する</button>
-      </div>
+    <div class="card" style="margin-top: 20px; display: none;">
+        <input type="text" id="export-data">
+        <input type="text" id="import-data">
     </div>
   </div>
 
 </div>
 
 <script>
+// =========================================================================
+// 🔥 ここにステップ1で取得したFirebase設定を貼り付けます 🔥
+// =========================================================================
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBubIKY437kCfW3UCx91FdDB8Tq-DALsBY",
+  authDomain: "tanto-app.firebaseapp.com",
+  projectId: "tanto-app",
+  storageBucket: "tanto-app.firebasestorage.app",
+  messagingSenderId: "170619092198",
+  appId: "1:170619092198:web:4578d1cf90b92f6da94f27"
+};
+
+
+// Firebaseの初期化
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+// 個人の進捗を保存する専用の場所（ドキュメント）を指定
+const docRef = db.collection("kanteiApp").doc("myProgressData");
+// =========================================================================
+
 // --- 1. マスターデータ ---
 const rawMasterData = [
   { id:'k1', subj:'鑑定理論', type:'kantei', tag:'rank-s', label:'優先度1', title:'総論 第5章 鑑定評価の基本的事項', q:244 },
@@ -234,11 +252,7 @@ const rawMasterData = [
   { id:'g32', subj:'行政法規', type:'gyousei', tag:'rank-d', label:'Dランク', title:'高齢者、障害者等の移動等の円滑化の促進に関する法律', q:31 }
 ];
 
-const STORAGE_KEY = 'kanteiProtoV3_UI';
-let progressDB = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-
-// プロト用ダミー履歴挿入 (4/17に鑑定総論6章完了)
-if (!progressDB['L1_k2']) progressDB['L1_k2'] = '2026-04-17';
+let progressDB = {}; // Firebaseから取得したデータを格納する変数
 
 const examDate = new Date('2026-05-17T00:00:00');
 const targetDate = new Date('2026-05-07T00:00:00');
@@ -423,7 +437,6 @@ function renderScheduleView() {
   }
 }
 
-// --- 進化した円形ダッシュボードの描画 ---
 function renderProgressView() {
   const container = document.getElementById('overall-progress-container');
   
@@ -484,7 +497,6 @@ function renderProgressView() {
     <div class="loop-breakdown-container">
   `;
 
-  // Render individual loop cards with Kantei/Gyousei breakdown directly under the rings
   for(let i=0; i<3; i++) {
       let lPct = [p1, p2, p3][i];
       let kPct = Math.round((loopKDone[i] / loopKTotal[i]) * 100) || 0;
@@ -509,9 +521,8 @@ function renderProgressView() {
       `;
   }
   
-  htmlStr += `</div>`; // Close loop-breakdown-container
+  htmlStr += `</div>`; 
 
-  // Add overall totals at the bottom
   let totalKPct = Math.round(((loopKDone[0]+loopKDone[1]+loopKDone[2]) / (loopKTotal[0]+loopKTotal[1]+loopKTotal[2])) * 100) || 0;
   let totalGPct = Math.round(((loopGDone[0]+loopGDone[1]+loopGDone[2]) / (loopGTotal[0]+loopGTotal[1]+loopGTotal[2])) * 100) || 0;
 
@@ -530,7 +541,6 @@ function renderProgressView() {
 
   container.innerHTML = htmlStr;
   
-  // Trigger animation after render
   setTimeout(() => {
     document.querySelectorAll('.progress-fill, .ring-fill').forEach(el => {
       let unused = el.offsetHeight; 
@@ -538,13 +548,32 @@ function renderProgressView() {
   }, 50);
 }
 
+// --- クラウド保存機能 ---
 function toggleTask(uniqueId, checkbox) {
+  // メモリ上のデータを更新
   progressDB[uniqueId] = checkbox.checked ? globalTodayStr : null;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(progressDB));
+  if (!checkbox.checked) delete progressDB[uniqueId];
+
+  // クラウドデータベースに同期送信（非同期）
+  saveDataToCloud();
+
+  // 見た目の更新
   document.getElementById(`row-${uniqueId}`).classList.toggle('completed', checkbox.checked);
   updateLocalProgress();
   renderProgressView();
   renderScheduleView();
+}
+
+function saveDataToCloud() {
+  // 万が一Firebaseの接続が切れていても、ローカルストレージにはバックアップ保存しておく
+  localStorage.setItem("kanteiAppLocalBackup", JSON.stringify(progressDB));
+  
+  // クラウド(Firebase)へ保存
+  if (docRef) {
+    docRef.set(progressDB).catch(error => {
+      console.error("クラウド保存エラー:", error);
+    });
+  }
 }
 
 function updateLocalProgress() {
@@ -562,12 +591,45 @@ function switchTab(id) {
   document.getElementById(`tab-${id}`).classList.add('active');
   document.getElementById(`tab-btn-${id}`).classList.add('active');
 }
-function importData() {
-  try { progressDB = JSON.parse(document.getElementById('import-data').value); localStorage.setItem(STORAGE_KEY, JSON.stringify(progressDB)); init(); } catch(e) { alert('エラー'); }
+
+// --- 初期化（クラウドからデータをロードする） ---
+async function init() {
+  const overlay = document.getElementById('loading-overlay');
+  
+  try {
+    // もしFirebaseが設定されていなければエラーを出す
+    if (firebaseConfig.apiKey === "YOUR_API_KEY") {
+        throw new Error("Firebaseが設定されていません");
+    }
+
+    // クラウドからデータを取得
+    const docSnap = await docRef.get();
+    if (docSnap.exists) {
+      progressDB = docSnap.data();
+    } else {
+      // 初回起動時：ダミーデータを入れる
+      progressDB['L1_k2'] = '2026-04-17';
+      await docRef.set(progressDB);
+    }
+  } catch(error) {
+    console.error("クラウド同期をスキップしました。", error);
+    // エラー時はローカルのバックアップを使う
+    progressDB = JSON.parse(localStorage.getItem("kanteiAppLocalBackup")) || {};
+    if (!progressDB['L1_k2']) progressDB['L1_k2'] = '2026-04-17';
+  }
+
+  // データのロードが終わったらスケジュール構築
+  buildDynamicSchedule(); 
+  renderTaskView(); 
+  renderScheduleView(); 
+  renderProgressView(); 
+  
+  // ロード画面を消す
+  overlay.style.display = 'none';
 }
 
-function init() { buildDynamicSchedule(); renderTaskView(); renderScheduleView(); renderProgressView(); document.getElementById('export-data').value = JSON.stringify(progressDB); }
+// アプリ起動
 init();
 </script>
 </body>
-</html>,document_type:HTML,title:鑑定士 3-Loop Stratos -PROTO-}
+</html>
