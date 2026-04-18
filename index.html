@@ -70,10 +70,10 @@
   .dashboard-dark { background: #0f172a; border-radius: 16px; padding: 25px; color: #f8fafc; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
   .dashboard-title { text-align: center; font-size: 1.1rem; font-weight: bold; color: #cbd5e1; margin-bottom: 20px; }
   
-  .svg-container { display: flex; justify-content: center; position: relative; margin-bottom: 20px; }
+  .svg-container { display: flex; justify-content: center; position: relative; margin-bottom: 30px; }
   .center-pct { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
-  .center-pct-num { font-size: 2.2rem; font-weight: bold; color: #ffffff; line-height: 1; }
-  .center-pct-lbl { font-size: 0.7rem; color: #94a3b8; margin-top: 5px; letter-spacing: 1px; }
+  .center-pct-num { font-size: 2.8rem; font-weight: bold; color: #ffffff; line-height: 1; margin-bottom: 2px;}
+  .center-pct-lbl { font-size: 0.75rem; color: #94a3b8; letter-spacing: 1px; }
 
   .ring-bg { fill: none; stroke: #1e293b; stroke-width: 16; }
   .ring-fill { fill: none; stroke-width: 16; stroke-linecap: round; transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -81,10 +81,22 @@
   .ring-2 { stroke: var(--ring2); }
   .ring-3 { stroke: var(--ring3); }
   
-  .ring-legend { display: flex; justify-content: center; gap: 15px; font-size: 0.8rem; font-weight: bold; margin-bottom: 25px; }
-  .leg-item { display: flex; align-items: center; gap: 5px; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  /* --- Re-designed Breakdown Section --- */
+  .loop-breakdown-container { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 30px; padding: 0 10px;}
+  .loop-box { flex: 1; background: #1e293b; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; align-items: center; border-top: 3px solid; }
+  .loop-box.b1 { border-top-color: var(--ring1); }
+  .loop-box.b2 { border-top-color: var(--ring2); }
+  .loop-box.b3 { border-top-color: var(--ring3); }
+  
+  .loop-box-title { font-size: 0.75rem; color: #94a3b8; font-weight: bold; margin-bottom: 2px; }
+  .loop-box-pct { font-size: 1.3rem; font-weight: bold; color: white; margin-bottom: 8px; }
+  
+  .mini-bar-row { display: flex; align-items: center; width: 100%; margin-bottom: 4px; font-size: 0.65rem; }
+  .mini-bar-label { width: 22px; color: #cbd5e1; }
+  .mini-bar-bg { flex: 1; background: #334155; height: 4px; border-radius: 2px; margin: 0 5px; overflow: hidden; }
+  .mini-bar-pct { width: 22px; text-align: right; color: #cbd5e1; }
 
+  /* Total Stat Cards (Bottom) */
   .stat-card { background: #1e293b; border-radius: 10px; padding: 15px; margin-bottom: 10px; }
   .stat-card-title { font-size: 0.85rem; color: #94a3b8; display: flex; justify-content: space-between; margin-bottom: 8px; }
   .stat-bar-bg { background: #334155; height: 8px; border-radius: 4px; overflow: hidden; }
@@ -93,6 +105,12 @@
   .backup-section input { width: calc(100% - 20px); padding: 8px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 4px; }
   .btn-sm { background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 5px; }
 
+  @media (max-width: 480px) {
+    .task-title { font-size: 0.9rem; }
+    .nav-btn { font-size: 0.85rem; padding: 12px 0; }
+    .loop-breakdown-container { padding: 0; gap: 5px; }
+    .loop-box { padding: 10px 5px; }
+  }
 </style>
 </head>
 <body>
@@ -167,7 +185,7 @@
 </div>
 
 <script>
-// --- 1. 完全な目次通り＆優先順位厳守のマスターデータ ---
+// --- 1. マスターデータ ---
 const rawMasterData = [
   { id:'k1', subj:'鑑定理論', type:'kantei', tag:'rank-s', label:'優先度1', title:'総論 第5章 鑑定評価の基本的事項', q:244 },
   { id:'g1', subj:'行政法規', type:'gyousei', tag:'rank-s', label:'Sランク', title:'都市計画法', q:272 },
@@ -405,24 +423,31 @@ function renderScheduleView() {
   }
 }
 
-// --- 新機能: 円形ダッシュボードの描画 ---
+// --- 進化した円形ダッシュボードの描画 ---
 function renderProgressView() {
   const container = document.getElementById('overall-progress-container');
   
   let loopDone = [0, 0, 0];
   let loopTotal = [0, 0, 0];
-  let kTotal = 0, kDone = 0;
-  let gTotal = 0, gDone = 0;
+
+  let loopKTotal = [0, 0, 0], loopKDone = [0, 0, 0];
+  let loopGTotal = [0, 0, 0], loopGDone = [0, 0, 0];
 
   allTasksQueue.forEach(t => {
     let q = t.q;
     let isDone = !!progressDB[t.uniqueId];
+    let lIdx = t.loopNum - 1;
     
-    loopTotal[t.loopNum - 1] += q;
-    if(isDone) loopDone[t.loopNum - 1] += q;
+    loopTotal[lIdx] += q;
+    if(isDone) loopDone[lIdx] += q;
 
-    if(t.type === 'kantei') { kTotal += q; if(isDone) kDone += q; }
-    else { gTotal += q; if(isDone) gDone += q; }
+    if(t.type === 'kantei') { 
+        loopKTotal[lIdx] += q; 
+        if(isDone) loopKDone[lIdx] += q; 
+    } else { 
+        loopGTotal[lIdx] += q; 
+        if(isDone) loopGDone[lIdx] += q; 
+    }
   });
 
   let p1 = Math.round((loopDone[0] / loopTotal[0]) * 100) || 0;
@@ -430,17 +455,14 @@ function renderProgressView() {
   let p3 = Math.round((loopDone[2] / loopTotal[2]) * 100) || 0;
   
   let allPct = Math.round(((loopDone[0]+loopDone[1]+loopDone[2]) / (loopTotal[0]+loopTotal[1]+loopTotal[2])) * 100) || 0;
-  let kPct = Math.round((kDone / kTotal) * 100) || 0;
-  let gPct = Math.round((gDone / gTotal) * 100) || 0;
 
-  // Calculate SVG stroke offsets (circumference = 2 * pi * r)
-  // r1=60 (c=377), r2=85 (c=534), r3=110 (c=691)
+  // SVG Stroke Offsets calculation
   let c1 = 377, c2 = 534, c3 = 691;
   let o1 = c1 - (p1 / 100) * c1;
   let o2 = c2 - (p2 / 100) * c2;
   let o3 = c3 - (p3 / 100) * c3;
 
-  container.innerHTML = `
+  let htmlStr = `
     <div class="dashboard-title">3周マスター・ダッシュボード</div>
     
     <div class="svg-container">
@@ -458,29 +480,59 @@ function renderProgressView() {
         <div class="center-pct-lbl">TOTAL DONE</div>
       </div>
     </div>
+    
+    <div class="loop-breakdown-container">
+  `;
 
-    <div class="ring-legend">
-      <div class="leg-item"><div class="dot" style="background:var(--ring1);"></div>1周目: ${p1}%</div>
-      <div class="leg-item"><div class="dot" style="background:var(--ring2);"></div>2周目: ${p2}%</div>
-      <div class="leg-item"><div class="dot" style="background:var(--ring3);"></div>3周目: ${p3}%</div>
-    </div>
+  // Render individual loop cards with Kantei/Gyousei breakdown directly under the rings
+  for(let i=0; i<3; i++) {
+      let lPct = [p1, p2, p3][i];
+      let kPct = Math.round((loopKDone[i] / loopKTotal[i]) * 100) || 0;
+      let gPct = Math.round((loopGDone[i] / loopGTotal[i]) * 100) || 0;
+      
+      htmlStr += `
+      <div class="loop-box b${i+1}">
+        <div class="loop-box-title">${i+1}周目</div>
+        <div class="loop-box-pct">${lPct}%</div>
+        
+        <div class="mini-bar-row">
+            <span class="mini-bar-label" style="color:var(--kantei);">鑑</span>
+            <div class="mini-bar-bg"><div class="progress-fill" style="width:${kPct}%; background:var(--kantei);"></div></div>
+            <span class="mini-bar-pct">${kPct}%</span>
+        </div>
+        <div class="mini-bar-row">
+            <span class="mini-bar-label" style="color:var(--gyousei);">行</span>
+            <div class="mini-bar-bg"><div class="progress-fill" style="width:${gPct}%; background:var(--gyousei);"></div></div>
+            <span class="mini-bar-pct">${gPct}%</span>
+        </div>
+      </div>
+      `;
+  }
+  
+  htmlStr += `</div>`; // Close loop-breakdown-container
 
+  // Add overall totals at the bottom
+  let totalKPct = Math.round(((loopKDone[0]+loopKDone[1]+loopKDone[2]) / (loopKTotal[0]+loopKTotal[1]+loopKTotal[2])) * 100) || 0;
+  let totalGPct = Math.round(((loopGDone[0]+loopGDone[1]+loopGDone[2]) / (loopGTotal[0]+loopGTotal[1]+loopGTotal[2])) * 100) || 0;
+
+  htmlStr += `
     <div style="display:flex; gap:10px; margin-top: 15px;">
       <div class="stat-card" style="flex:1;">
-        <div class="stat-card-title"><span>鑑定理論</span><span style="color:#ffffff;">${kPct}%</span></div>
-        <div class="stat-bar-bg"><div class="progress-fill" style="width:${kPct}%; background:var(--kantei);"></div></div>
+        <div class="stat-card-title"><span>鑑定理論 総計</span><span style="color:#ffffff;">${totalKPct}%</span></div>
+        <div class="stat-bar-bg"><div class="progress-fill" style="width:${totalKPct}%; background:var(--kantei);"></div></div>
       </div>
       <div class="stat-card" style="flex:1;">
-        <div class="stat-card-title"><span>行政法規</span><span style="color:#ffffff;">${gPct}%</span></div>
-        <div class="stat-bar-bg"><div class="progress-fill" style="width:${gPct}%; background:var(--gyousei);"></div></div>
+        <div class="stat-card-title"><span>行政法規 総計</span><span style="color:#ffffff;">${totalGPct}%</span></div>
+        <div class="stat-bar-bg"><div class="progress-fill" style="width:${totalGPct}%; background:var(--gyousei);"></div></div>
       </div>
     </div>
   `;
+
+  container.innerHTML = htmlStr;
   
   // Trigger animation after render
   setTimeout(() => {
     document.querySelectorAll('.progress-fill, .ring-fill').forEach(el => {
-      // Just touching it forces reflow to ensure CSS transition fires nicely
       let unused = el.offsetHeight; 
     });
   }, 50);
@@ -518,4 +570,4 @@ function init() { buildDynamicSchedule(); renderTaskView(); renderScheduleView()
 init();
 </script>
 </body>
-</html>
+</html>,document_type:HTML,title:鑑定士 3-Loop Stratos -PROTO-}
