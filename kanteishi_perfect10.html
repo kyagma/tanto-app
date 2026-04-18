@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>鑑定士 3-Loop Stratos -PROTO-</title>
+<style>
+  :root { 
+    --primary: #0f172a; --accent: #2563eb; --success: #16a34a; --warning: #d97706;
+    --bg: #f8fafc; --card: #ffffff; --text: #334155; --muted: #94a3b8;
+  }
+  body { font-family: 'Hiragino Sans', 'Meiryo', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding-bottom: 60px; line-height: 1.5; }
+  
+  .header { background: var(--primary); color: white; padding: 20px 15px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; }
+  .header-subtitle { font-size: 0.85rem; color: #cbd5e1; }
+  .header-title { font-size: 1.5rem; font-weight: bold; margin: 5px 0; }
+  .status-badge { background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; display: inline-block; margin-top: 5px; }
+
+  .nav { display: flex; background: var(--card); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+  .nav-btn { flex: 1; padding: 15px 0; text-align: center; font-weight: bold; cursor: pointer; border: none; background: none; color: var(--muted); border-bottom: 3px solid transparent; transition: 0.2s; font-size: 0.95rem; }
+  .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .container { max-width: 750px; margin: 0 auto; padding: 15px; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .card { background: var(--card); border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+  
+  .task-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px; }
+  .task-header h2 { margin: 0; font-size: 1.2rem; color: var(--primary); }
+  
+  .viewing-alert { background: #fef3c7; border-left: 4px solid var(--warning); padding: 10px 15px; border-radius: 4px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; font-weight: bold; }
+  .viewing-alert button { background: var(--warning); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+  .task-item { display: flex; align-items: flex-start; padding: 12px 0; border-bottom: 1px dashed #e2e8f0; transition: background 0.2s; cursor: pointer; }
+  .task-item:last-child { border-bottom: none; }
+  .task-item:hover { background: #f1f5f9; }
+  .task-item input[type="checkbox"] { width: 22px; height: 22px; margin: 3px 15px 0 0; cursor: pointer; accent-color: var(--success); flex-shrink: 0; pointer-events: none; }
+  .task-item.completed { opacity: 0.6; }
+  .task-item.completed .task-title { text-decoration: line-through; color: var(--muted); }
+  
+  .task-title { font-weight: bold; font-size: 0.95rem; margin-bottom: 6px; line-height: 1.4; color: var(--primary); }
+  .task-meta { font-size: 0.8rem; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  
+  .tag { padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem; }
+  .tag.loop-badge { background: var(--primary); color: white; }
+  .tag.kantei { background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; }
+  .tag.gyousei { background: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; }
+  .tag.rank-s { background: #fee2e2; color: #b91c1c; }
+  .tag.rank-a { background: #ffedd5; color: #c2410c; }
+  .tag.rank-b { background: #fef08a; color: #854d0e; }
+  .tag.rank-c { background: #e2e8f0; color: #475569; }
+  .tag.rank-d { background: #f1f5f9; color: #94a3b8; }
+
+  .schedule-row { padding: 12px 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; background: var(--card); display: flex; flex-direction: column; }
+  .schedule-row:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(37,99,235,0.15); transform: translateY(-1px); }
+  .schedule-row.today-row { border-left: 4px solid var(--accent); background: #eff6ff; }
+  .schedule-row.past-row { background: #f8fafc; opacity: 0.8; border-color: #cbd5e1; }
+  .schedule-date { font-weight: bold; color: var(--primary); margin-bottom: 5px; font-size: 0.95rem; display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;}
+  .schedule-content { font-size: 0.85rem; color: var(--muted); line-height: 1.5; padding-left: 5px; margin-top: 5px;}
+  .schedule-stats { font-size: 0.85rem; font-weight: bold; color: var(--accent); }
+
+  .progress-bar { background: #e2e8f0; height: 16px; border-radius: 8px; overflow: hidden; margin: 10px 0; position: relative; }
+  .progress-fill { background: var(--success); height: 100%; width: 0%; transition: width 0.5s ease; }
+  
+  .backup-section { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 0.85rem; }
+  .backup-section input { width: calc(100% - 20px); padding: 8px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 4px; }
+  .btn-sm { background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 5px; }
+
+  @media (max-width: 480px) {
+    .task-title { font-size: 0.9rem; }
+    .nav-btn { font-size: 0.85rem; padding: 12px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-subtitle">不動産鑑定士 短答式試験</div>
+  <div class="header-title">5月17日まで あと <span id="days-exam">--</span>日</div>
+  <div class="status-badge">目標 5/7 まで残り <span id="days-target">--</span>日 (プロト版)</div>
+  <button onclick="forceRecalculate()" style="position: absolute; top: 20px; right: 15px; background: rgba(0,0,0,0.2); color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">再計算🔄</button>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="switchTab('task')" id="tab-btn-task">任務・タスク</button>
+  <button class="nav-btn" onclick="switchTab('schedule')" id="tab-btn-schedule">全日程一覧</button>
+  <button class="nav-btn" onclick="switchTab('progress')" id="tab-btn-progress">3周進捗・引継</button>
+</div>
+
+<div class="container">
+  
+  <div id="tab-task" class="tab-content active">
+    <div id="viewing-alert" class="viewing-alert" style="display: none;">
+      <span id="viewing-alert-text"></span>
+      <button onclick="returnToToday()">今日に戻る</button>
+    </div>
+
+    <div class="card">
+      <div class="task-header">
+        <h2 id="task-day-title">--</h2>
+        <div style="text-align: right;">
+          <div style="font-size: 0.8rem; color: var(--muted);" id="dynamic-target-text"></div>
+          <div style="font-weight: bold; color: var(--accent); font-size: 1.1rem;" id="task-day-stats">計 --問</div>
+        </div>
+      </div>
+      
+      <div class="progress-bar" style="height: 6px; margin-top: -5px; margin-bottom: 20px;">
+        <div class="progress-fill" id="daily-progress" style="width: 0%;"></div>
+      </div>
+
+      <div id="task-list"></div>
+      
+      <div id="all-clear-message" style="display:none; text-align:center; padding: 20px; color: var(--success); font-weight: bold; font-size: 1.1rem;">
+        🎉 この日のタスクは完了です！
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-schedule" class="tab-content">
+    <div class="card">
+      <p style="font-size: 0.85rem; margin-top:0; color: var(--muted);">4/17にダミー履歴を設定しています。タップして内容を確認してください。</p>
+      <div id="schedule-container"></div>
+    </div>
+  </div>
+
+  <div id="tab-progress" class="tab-content">
+    <div class="card" id="overall-progress-container">
+      <h2 style="margin-top:0;">3周完走への軌跡</h2>
+    </div>
+    
+    <div class="card">
+      <h2 style="margin-top:0; font-size: 1.1rem;">データの引継ぎ (バックアップ)</h2>
+      <div class="backup-section">
+        <label style="font-weight: bold;">現在の保存データ:</label>
+        <input type="text" id="export-data" readonly onclick="this.select()">
+        <br><br>
+        <label style="font-weight: bold;">データの復元:</label>
+        <input type="text" id="import-data" placeholder="ここにデータを貼り付けて「復元する」を押す">
+        <button class="btn-sm" onclick="importData()">復元する</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const rawMasterData = [
+  { id:'k1', subj:'鑑定理論', type:'kantei', tag:'rank-s', label:'優先度1', title:'総論 第5章 鑑定評価の基本的事項', q:244 },
+  { id:'g1', subj:'行政法規', type:'gyousei', tag:'rank-s', label:'Sランク', title:'都市計画法', q:272 },
+  { id:'g2', subj:'行政法規', type:'gyousei', tag:'rank-s', label:'Sランク', title:'建築基準法', q:238 },
+  { id:'k2', subj:'鑑定理論', type:'kantei', tag:'rank-s', label:'優先度1', title:'総論 第6章 地域分析及び個別分析', q:153 },
+  { id:'g3', subj:'行政法規', type:'gyousei', tag:'rank-a', label:'Aランク', title:'不動産の鑑定評価に関する法律', q:40 },
+  { id:'g4', subj:'行政法規', type:'gyousei', tag:'rank-a', label:'Aランク', title:'地価公示法', q:44 },
+  { id:'k3', subj:'鑑定理論', type:'kantei', tag:'rank-s', label:'優先度1', title:'総論 第7章 価格を求める鑑定評価の手法', q:361 },
+  { id:'g5', subj:'行政法規', type:'gyousei', tag:'rank-a', label:'Aランク', title:'住宅の品質確保の促進等に関する法律', q:26 },
+  { id:'g6', subj:'行政法規', type:'gyousei', tag:'rank-a', label:'Aランク', title:'土壌汚染対策法', q:46 },
+  { id:'k4', subj:'鑑定理論', type:'kantei', tag:'rank-s', label:'優先度1', title:'総論 第8章 鑑定評価の手順', q:136 },
+  { id:'g7', subj:'行政法規', type:'gyousei', tag:'rank-a', label:'Aランク', title:'農地法', q:47 },
+  { id:'g8', subj:'行政法規', type:'gyousei', tag:'rank-a', label:'Aランク', title:'宅地建物取引業法', q:63 },
+  { id:'k5', subj:'鑑定理論', type:'kantei', tag:'rank-s', label:'優先度1', title:'各論 第1章 価格に関する鑑定評価', q:418 },
+  { id:'g9', subj:'行政法規', type:'gyousei', tag:'rank-b', label:'Bランク', title:'国土利用計画法', q:86 },
+  { id:'g10', subj:'行政法規', type:'gyousei', tag:'rank-b', label:'Bランク', title:'土地区画整理法', q:113 },
+  { id:'k6', subj:'鑑定理論', type:'kantei', tag:'rank-a', label:'優先度2', title:'総論 第1章 不動産の鑑定評価に関する基本的考察', q:129 },
+  { id:'g11', subj:'行政法規', type:'gyousei', tag:'rank-b', label:'Bランク', title:'不動産登記法', q:44 },
+  { id:'g12', subj:'行政法規', type:'gyousei', tag:'rank-b', label:'Bランク', title:'都市再開発法', q:49 },
+  { id:'k7', subj:'鑑定理論', type:'kantei', tag:'rank-a', label:'優先度2', title:'総論 第2章 不動産の種別及び類型', q:110 },
+  { id:'g13', subj:'行政法規', type:'gyousei', tag:'rank-b', label:'Bランク', title:'国有財産法', q:57 },
+  { id:'g14', subj:'行政法規', type:'gyousei', tag:'rank-b', label:'Bランク', title:'マンションの建替え等の円滑化に関する法律', q:73 },
+  { id:'k8', subj:'鑑定理論', type:'kantei', tag:'rank-a', label:'優先度2', title:'総論 第3章 不動産の価格を形成する要因', q:163 },
+  { id:'g15', subj:'行政法規', type:'gyousei', tag:'rank-b', label:'Bランク', title:'土地収用法', q:67 },
+  { id:'g16', subj:'行政法規', type:'gyousei', tag:'rank-b', label:'Bランク', title:'土地基本法', q:45 },
+  { id:'k9', subj:'鑑定理論', type:'kantei', tag:'rank-a', label:'優先度2', title:'総論 第4章 不動産の価格に関する諸原則', q:92 },
+  { id:'g17', subj:'行政法規', type:'gyousei', tag:'rank-b', label:'Bランク', title:'宅地造成及び特定盛土等規制法', q:36 },
+  { id:'g18', subj:'行政法規', type:'gyousei', tag:'rank-c', label:'Cランク', title:'地方税法', q:43 },
+  { id:'k10', subj:'鑑定理論', type:'kantei', tag:'rank-a', label:'優先度2', title:'総論 第9章 鑑定評価報告書', q:99 },
+  { id:'g19', subj:'行政法規', type:'gyousei', tag:'rank-c', label:'Cランク', title:'所得税法', q:27 },
+  { id:'g20', subj:'行政法規', type:'gyousei', tag:'rank-c', label:'Cランク', title:'相続税法', q:35 },
+  { id:'k11', subj:'鑑定理論', type:'kantei', tag:'rank-b', label:'優先度3', title:'総論 第7章 賃料を求める鑑定評価の手法', q:179 },
+  { id:'g21', subj:'行政法規', type:'gyousei', tag:'rank-c', label:'Cランク', title:'租税特別措置法', q:37 },
+  { id:'g22', subj:'行政法規', type:'gyousei', tag:'rank-c', label:'Cランク', title:'法人税法', q:14 },
+  { id:'k12', subj:'鑑定理論', type:'kantei', tag:'rank-b', label:'優先度3', title:'各論 第2章 賃料に関する鑑定評価', q:91 },
+  { id:'g23', subj:'行政法規', type:'gyousei', tag:'rank-d', label:'Dランク', title:'証券化関連法令', q:55 },
+  { id:'g24', subj:'行政法規', type:'gyousei', tag:'rank-d', label:'Dランク', title:'文化財保護法', q:36 },
+  { id:'g25', subj:'行政法規', type:'gyousei', tag:'rank-d', label:'Dランク', title:'景観法', q:32 },
+  { id:'k13', subj:'鑑定理論', type:'kantei', tag:'rank-b', label:'優先度3', title:'各論 第3章 証券化対象不動産の価格に関する鑑定評価', q:296 },
+  { id:'g26', subj:'行政法規', type:'gyousei', tag:'rank-d', label:'Dランク', title:'都市緑地法', q:31 },
+  { id:'g27', subj:'行政法規', type:'gyousei', tag:'rank-d', label:'Dランク', title:'森林法', q:33 },
+  { id:'g28', subj:'行政法規', type:'gyousei', tag:'rank-d', label:'Dランク', title:'自然環境保全法', q:29 },
+  { id:'g29', subj:'行政法規', type:'gyousei', tag:'rank-d', label:'Dランク', title:'自然公園法', q:38 },
+  { id:'g30', subj:'行政法規', type:'gyousei', tag:'rank-d', label:'Dランク', title:'河川法など', q:40 },
+  { id:'g31', subj:'行政法規', type:'gyousei', tag:'rank-d', label:'Dランク', title:'道路法', q:20 },
+  { id:'g32', subj:'行政法規', type:'gyousei', tag:'rank-d', label:'Dランク', title:'高齢者、障害者等の移動等の円滑化の促進に関する法律', q:31 }
+];
+
+const STORAGE_KEY = 'kanteiProtoV1';
+let progressDB = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+
+// プロト用ダミー履歴挿入 (4/17に鑑定総論6章完了)
+if (!progressDB['L1_k2']) progressDB['L1_k2'] = '2026-04-17';
+
+const examDate = new Date('2026-05-17T00:00:00');
+const targetDate = new Date('2026-05-07T00:00:00');
+const startDate = new Date('2026-04-18T00:00:00'); // プロト用開始日
+const todayDate = new Date();
+todayDate.setHours(0,0,0,0);
+
+function toDateStr(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+const globalTodayStr = toDateStr(todayDate);
+
+let allTasksQueue = [];
+for(let loop = 1; loop <= 3; loop++) {
+  rawMasterData.forEach(item => {
+    allTasksQueue.push({ ...item, loopNum: loop, uniqueId: `L${loop}_${item.id}` });
+  });
+}
+
+let sessionBuckets = [];
+let bucketDates = [];
+let viewingBucketIndex = 0; 
+let todayBucketIndex = 0;
+let dailyTargetQ = 0;
+
+function buildDynamicSchedule() {
+  const effectiveToday = todayDate < startDate ? startDate : todayDate;
+  const effectiveTodayStr = toDateStr(effectiveToday);
+  
+  document.getElementById('days-exam').innerText = Math.ceil((examDate - todayDate) / 86400000);
+  document.getElementById('days-target').innerText = Math.max(0, Math.round((targetDate - todayDate) / 86400000));
+
+  let doneByDate = {};
+  let pendingTasks = [];
+  
+  allTasksQueue.forEach(t => {
+      let doneDate = progressDB[t.uniqueId];
+      if (doneDate) {
+          if (!doneByDate[doneDate]) doneByDate[doneDate] = [];
+          doneByDate[doneDate].push(t);
+      } else {
+          pendingTasks.push(t);
+      }
+  });
+
+  let todayDoneTasks = doneByDate[effectiveTodayStr] || [];
+  let todayDoneQ = todayDoneTasks.reduce((sum, t) => sum + t.q, 0);
+  let totalPendingQ = pendingTasks.reduce((sum, t) => sum + t.q, 0);
+
+  let daysLeft = Math.round((targetDate - effectiveToday) / 86400000) + 1;
+  if(daysLeft < 1) daysLeft = 1; 
+  dailyTargetQ = Math.ceil((totalPendingQ + todayDoneQ) / daysLeft);
+
+  sessionBuckets = [];
+  bucketDates = [];
+  let currentBucketIdx = 0;
+
+  // 1. 過去履歴 (4/17を含む)
+  let loopDate = new Date('2026-04-17T00:00:00'); // ダミー確認のため17日から開始
+  while (loopDate < effectiveToday) {
+      let dStr = toDateStr(loopDate);
+      sessionBuckets[currentBucketIdx] = doneByDate[dStr] || [];
+      bucketDates[currentBucketIdx] = dStr;
+      loopDate.setDate(loopDate.getDate() + 1);
+      currentBucketIdx++;
+  }
+
+  // 2. 本日
+  todayBucketIndex = currentBucketIdx;
+  sessionBuckets[todayBucketIndex] = [...todayDoneTasks];
+  bucketDates[todayBucketIndex] = effectiveTodayStr;
+  
+  let currentQ = todayDoneQ;
+  let pendingIdx = 0;
+  while(pendingIdx < pendingTasks.length && currentQ + (pendingTasks[pendingIdx].q / 2) <= dailyTargetQ) {
+      sessionBuckets[todayBucketIndex].push(pendingTasks[pendingIdx]);
+      currentQ += pendingTasks[pendingIdx].q;
+      pendingIdx++;
+  }
+  currentBucketIdx++;
+
+  // 3. 未来
+  loopDate = new Date(effectiveToday);
+  loopDate.setDate(loopDate.getDate() + 1);
+  currentQ = 0;
+  let futureBucket = [];
+  while (pendingIdx < pendingTasks.length) {
+      let t = pendingTasks[pendingIdx];
+      if (currentQ + (t.q / 2) > dailyTargetQ && futureBucket.length > 0) {
+          sessionBuckets[currentBucketIdx] = [...futureBucket];
+          bucketDates[currentBucketIdx] = toDateStr(loopDate);
+          futureBucket = [];
+          currentQ = 0;
+          loopDate.setDate(loopDate.getDate() + 1);
+          currentBucketIdx++;
+      }
+      futureBucket.push(t);
+      currentQ += t.q;
+      pendingIdx++;
+  }
+  if (futureBucket.length > 0) {
+      sessionBuckets[currentBucketIdx] = [...futureBucket];
+      bucketDates[currentBucketIdx] = toDateStr(loopDate);
+  }
+  viewingBucketIndex = todayBucketIndex;
+}
+
+function renderTaskView() {
+  const container = document.getElementById('task-list');
+  container.innerHTML = '';
+  let currentViewStr = bucketDates[viewingBucketIndex];
+  let parts = currentViewStr.split('-');
+  let shortDate = `${parts[1]}/${parts[2]}`;
+  
+  const vAlert = document.getElementById('viewing-alert');
+  if (viewingBucketIndex < todayBucketIndex) {
+      vAlert.style.display = 'flex';
+      document.getElementById('viewing-alert-text').innerText = `${shortDate} の履歴を表示中`;
+      document.getElementById('task-day-title').innerText = `${shortDate} の履歴`;
+  } else if (viewingBucketIndex > todayBucketIndex) {
+      vAlert.style.display = 'flex';
+      document.getElementById('viewing-alert-text').innerText = `${shortDate} の先取り表示中`;
+      document.getElementById('task-day-title').innerText = `${shortDate} の予定`;
+  } else {
+      vAlert.style.display = 'none';
+      document.getElementById('task-day-title').innerText = `本日 (${shortDate}) のノルマ`;
+  }
+
+  const tasks = sessionBuckets[viewingBucketIndex] || [];
+  let totalQ = tasks.reduce((sum, t) => sum + t.q, 0);
+  document.getElementById('task-day-stats').innerText = `計 ${totalQ}問`;
+  document.getElementById('dynamic-target-text').innerText = `動的目標: 約${dailyTargetQ}問/日`;
+
+  tasks.forEach(task => {
+    const isDone = progressDB[task.uniqueId];
+    container.innerHTML += `
+      <label class="task-item ${isDone ? 'completed' : ''}" id="row-${task.uniqueId}">
+        <input type="checkbox" ${isDone ? 'checked' : ''} onchange="toggleTask('${task.uniqueId}', this)">
+        <div style="flex:1;">
+          <div class="task-title">${task.title}</div>
+          <div class="task-meta">
+            <span class="tag loop-badge">${task.loopNum}周目</span>
+            <span class="tag ${task.type}">${task.subj}</span>
+            <span class="tag ${task.tag}">${task.label}</span>
+            <span>${task.q}問</span>
+          </div>
+        </div>
+      </label>
+    `;
+  });
+  updateLocalProgress();
+}
+
+function renderScheduleView() {
+  const container = document.getElementById('schedule-container');
+  container.innerHTML = '';
+  for(let i=0; i<sessionBuckets.length; i++) {
+    const tasks = sessionBuckets[i];
+    if(tasks.length === 0 && i !== todayBucketIndex) continue;
+    let sumQ = tasks.reduce((sum, t) => sum + t.q, 0);
+    let shortDate = bucketDates[i].split('-').slice(1).join('/');
+    let isPast = (i < todayBucketIndex);
+    let isToday = (i === todayBucketIndex);
+    
+    // 打ち消し線と✅マークの処理を付加
+    let shortTitles = tasks.map(t => {
+       const isDone = progressDB[t.uniqueId];
+       const textStyle = isDone ? 'text-decoration: line-through; color: var(--muted);' : '';
+       const checkMark = isDone ? '✅ ' : '・';
+       const opacityStyle = isDone ? 'opacity:0.5;' : '';
+       return `<span style="color:var(--accent); font-weight:bold; ${opacityStyle}">[${t.loopNum}周]</span> <span style="${textStyle}">${checkMark}${t.title}</span>`;
+    }).join('<br>');
+
+    container.innerHTML += `
+      <div class="schedule-row ${isToday ? 'today-row' : (isPast ? 'past-row' : '')}" onclick="goToDay(${i})">
+        <div class="schedule-date">
+          <span>${shortDate} ${isToday ? '★本日' : ''} ${isPast ? '(履歴)' : ''}</span>
+          <span class="schedule-stats">約${sumQ}問</span>
+        </div>
+        <div class="schedule-content">${shortTitles}</div>
+      </div>
+    `;
+  }
+}
+
+function renderProgressView() {
+  const container = document.getElementById('overall-progress-container');
+  container.innerHTML = '<h2 style="margin-top:0;">3周完走への軌跡</h2>';
+  for(let loop=1; loop<=3; loop++) {
+    let loopTasks = allTasksQueue.filter(t => t.loopNum === loop);
+    let totalQ = loopTasks.reduce((sum, t) => sum + t.q, 0);
+    let doneQ = loopTasks.reduce((sum, t) => sum + (progressDB[t.uniqueId] ? t.q : 0), 0);
+    let pct = Math.round((doneQ / totalQ) * 100) || 0;
+    container.innerHTML += `
+      <div style="margin-bottom: 20px;">
+        <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:5px;"><span>第${loop}周目</span><span>${pct}%</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      </div>
+    `;
+  }
+}
+
+function toggleTask(uniqueId, checkbox) {
+  progressDB[uniqueId] = checkbox.checked ? globalTodayStr : null;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(progressDB));
+  document.getElementById(`row-${uniqueId}`).classList.toggle('completed', checkbox.checked);
+  updateLocalProgress();
+  renderProgressView();
+  renderScheduleView();
+}
+
+function updateLocalProgress() {
+  const tasks = sessionBuckets[viewingBucketIndex] || [];
+  let done = tasks.filter(t => progressDB[t.uniqueId]).length;
+  document.getElementById('daily-progress').style.width = tasks.length ? `${(done / tasks.length) * 100}%` : '0%';
+  document.getElementById('all-clear-message').style.display = (tasks.length > 0 && done === tasks.length) ? 'block' : 'none';
+}
+
+function goToDay(idx) { viewingBucketIndex = idx; switchTab('task'); renderTaskView(); renderScheduleView(); window.scrollTo(0,0); }
+function returnToToday() { viewingBucketIndex = todayBucketIndex; renderTaskView(); renderScheduleView(); }
+function forceRecalculate() { buildDynamicSchedule(); renderTaskView(); renderScheduleView(); alert('再計算完了'); }
+function switchTab(id) {
+  document.querySelectorAll('.tab-content, .nav-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(`tab-${id}`).classList.add('active');
+  document.getElementById(`tab-btn-${id}`).classList.add('active');
+}
+function importData() {
+  try { progressDB = JSON.parse(document.getElementById('import-data').value); localStorage.setItem(STORAGE_KEY, JSON.stringify(progressDB)); init(); } catch(e) { alert('エラー'); }
+}
+
+function init() { buildDynamicSchedule(); renderTaskView(); renderScheduleView(); renderProgressView(); document.getElementById('export-data').value = JSON.stringify(progressDB); }
+init();
+</script>
+</body>
+</html>
