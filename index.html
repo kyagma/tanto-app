@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>鑑定士 3-Loop Stratos -PROTO V2-</title>
+<title>鑑定士 3-Loop Stratos -PROTO-</title>
 <style>
   :root { 
     --primary: #0f172a; --accent: #2563eb; --success: #16a34a; --warning: #d97706;
     --bg: #f8fafc; --card: #ffffff; --text: #334155; --muted: #94a3b8;
     --kantei: #4338ca; --gyousei: #be185d;
+    --ring1: #3b82f6; --ring2: #8b5cf6; --ring3: #f59e0b;
   }
   body { font-family: 'Hiragino Sans', 'Meiryo', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding-bottom: 60px; line-height: 1.5; }
   
@@ -58,20 +59,40 @@
   .schedule-row.today-row { border-left: 4px solid var(--accent); background: #eff6ff; }
   .schedule-row.past-row { background: #f8fafc; opacity: 0.8; border-color: #cbd5e1; }
   .schedule-date { font-weight: bold; color: var(--primary); margin-bottom: 5px; font-size: 0.95rem; display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;}
-  .schedule-content { font-size: 0.8rem; color: var(--muted); line-height: 1.4; padding-left: 5px; margin-top: 5px;}
+  .schedule-content { font-size: 0.85rem; color: var(--muted); line-height: 1.5; padding-left: 5px; margin-top: 5px;}
   .schedule-stats { font-size: 0.85rem; font-weight: bold; color: var(--accent); }
 
+  /* Sub Progress Bar */
   .progress-bar { background: #e2e8f0; border-radius: 8px; overflow: hidden; position: relative; }
-  .progress-fill { height: 100%; width: 0%; transition: width 0.5s ease; }
+  .progress-fill { height: 100%; width: 0%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+
+  /* Dark Dashboard Widget */
+  .dashboard-dark { background: #0f172a; border-radius: 16px; padding: 25px; color: #f8fafc; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+  .dashboard-title { text-align: center; font-size: 1.1rem; font-weight: bold; color: #cbd5e1; margin-bottom: 20px; }
   
+  .svg-container { display: flex; justify-content: center; position: relative; margin-bottom: 20px; }
+  .center-pct { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+  .center-pct-num { font-size: 2.2rem; font-weight: bold; color: #ffffff; line-height: 1; }
+  .center-pct-lbl { font-size: 0.7rem; color: #94a3b8; margin-top: 5px; letter-spacing: 1px; }
+
+  .ring-bg { fill: none; stroke: #1e293b; stroke-width: 16; }
+  .ring-fill { fill: none; stroke-width: 16; stroke-linecap: round; transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1); }
+  .ring-1 { stroke: var(--ring1); }
+  .ring-2 { stroke: var(--ring2); }
+  .ring-3 { stroke: var(--ring3); }
+  
+  .ring-legend { display: flex; justify-content: center; gap: 15px; font-size: 0.8rem; font-weight: bold; margin-bottom: 25px; }
+  .leg-item { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  .stat-card { background: #1e293b; border-radius: 10px; padding: 15px; margin-bottom: 10px; }
+  .stat-card-title { font-size: 0.85rem; color: #94a3b8; display: flex; justify-content: space-between; margin-bottom: 8px; }
+  .stat-bar-bg { background: #334155; height: 8px; border-radius: 4px; overflow: hidden; }
+
   .backup-section { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 0.85rem; }
   .backup-section input { width: calc(100% - 20px); padding: 8px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 4px; }
   .btn-sm { background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 5px; }
 
-  @media (max-width: 480px) {
-    .task-title { font-size: 0.9rem; }
-    .nav-btn { font-size: 0.85rem; padding: 12px 0; }
-  }
 </style>
 </head>
 <body>
@@ -126,10 +147,11 @@
   </div>
 
   <div id="tab-progress" class="tab-content">
-    <div class="card" id="overall-progress-container">
+    
+    <div class="dashboard-dark" id="overall-progress-container">
       </div>
     
-    <div class="card">
+    <div class="card" style="margin-top: 20px;">
       <h2 style="margin-top:0; font-size: 1.1rem;">データの引継ぎ (バックアップ)</h2>
       <div class="backup-section">
         <label style="font-weight: bold;">現在の保存データ:</label>
@@ -145,6 +167,7 @@
 </div>
 
 <script>
+// --- 1. 完全な目次通り＆優先順位厳守のマスターデータ ---
 const rawMasterData = [
   { id:'k1', subj:'鑑定理論', type:'kantei', tag:'rank-s', label:'優先度1', title:'総論 第5章 鑑定評価の基本的事項', q:244 },
   { id:'g1', subj:'行政法規', type:'gyousei', tag:'rank-s', label:'Sランク', title:'都市計画法', q:272 },
@@ -193,7 +216,7 @@ const rawMasterData = [
   { id:'g32', subj:'行政法規', type:'gyousei', tag:'rank-d', label:'Dランク', title:'高齢者、障害者等の移動等の円滑化の促進に関する法律', q:31 }
 ];
 
-const STORAGE_KEY = 'kanteiProtoV2';
+const STORAGE_KEY = 'kanteiProtoV3_UI';
 let progressDB = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
 
 // プロト用ダミー履歴挿入 (4/17に鑑定総論6章完了)
@@ -382,95 +405,85 @@ function renderScheduleView() {
   }
 }
 
+// --- 新機能: 円形ダッシュボードの描画 ---
 function renderProgressView() {
   const container = document.getElementById('overall-progress-container');
-  container.innerHTML = '<h2 style="margin-top:0;">学習進捗ダッシュボード</h2>';
-
-  let allTotal = 0, allDone = 0;
+  
+  let loopDone = [0, 0, 0];
+  let loopTotal = [0, 0, 0];
   let kTotal = 0, kDone = 0;
   let gTotal = 0, gDone = 0;
 
   allTasksQueue.forEach(t => {
     let q = t.q;
     let isDone = !!progressDB[t.uniqueId];
-    allTotal += q; if(isDone) allDone += q;
+    
+    loopTotal[t.loopNum - 1] += q;
+    if(isDone) loopDone[t.loopNum - 1] += q;
+
     if(t.type === 'kantei') { kTotal += q; if(isDone) kDone += q; }
     else { gTotal += q; if(isDone) gDone += q; }
   });
 
-  let allPct = Math.round((allDone/allTotal)*100)||0;
-  let kPct = Math.round((kDone/kTotal)*100)||0;
-  let gPct = Math.round((gDone/gTotal)*100)||0;
+  let p1 = Math.round((loopDone[0] / loopTotal[0]) * 100) || 0;
+  let p2 = Math.round((loopDone[1] / loopTotal[1]) * 100) || 0;
+  let p3 = Math.round((loopDone[2] / loopTotal[2]) * 100) || 0;
+  
+  let allPct = Math.round(((loopDone[0]+loopDone[1]+loopDone[2]) / (loopTotal[0]+loopTotal[1]+loopTotal[2])) * 100) || 0;
+  let kPct = Math.round((kDone / kTotal) * 100) || 0;
+  let gPct = Math.round((gDone / gTotal) * 100) || 0;
 
-  // 総合進捗サマリー
-  container.innerHTML += `
-    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:15px; margin-bottom:20px;">
-      <h3 style="margin-top:0; font-size:1.05rem; color:var(--primary); border-bottom:1px solid #cbd5e1; padding-bottom:5px;">総合進捗 (全3周合計)</h3>
-      
-      <div style="margin-bottom: 12px;">
-        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:0.9rem; margin-bottom:3px;">
-          <span>全体合計</span><span>${allPct}%</span>
-        </div>
-        <div class="progress-bar" style="height:12px; margin:0;"><div class="progress-fill" style="width:${allPct}%; background:var(--success);"></div></div>
+  // Calculate SVG stroke offsets (circumference = 2 * pi * r)
+  // r1=60 (c=377), r2=85 (c=534), r3=110 (c=691)
+  let c1 = 377, c2 = 534, c3 = 691;
+  let o1 = c1 - (p1 / 100) * c1;
+  let o2 = c2 - (p2 / 100) * c2;
+  let o3 = c3 - (p3 / 100) * c3;
+
+  container.innerHTML = `
+    <div class="dashboard-title">3周マスター・ダッシュボード</div>
+    
+    <div class="svg-container">
+      <svg width="260" height="260" viewBox="0 0 260 260" style="transform: rotate(-90deg);">
+        <circle class="ring-bg" cx="130" cy="130" r="110"></circle>
+        <circle class="ring-bg" cx="130" cy="130" r="85"></circle>
+        <circle class="ring-bg" cx="130" cy="130" r="60"></circle>
+        
+        <circle class="ring-fill ring-3" cx="130" cy="130" r="110" stroke-dasharray="${c3}" stroke-dashoffset="${o3}"></circle>
+        <circle class="ring-fill ring-2" cx="130" cy="130" r="85" stroke-dasharray="${c2}" stroke-dashoffset="${o2}"></circle>
+        <circle class="ring-fill ring-1" cx="130" cy="130" r="60" stroke-dasharray="${c1}" stroke-dashoffset="${o1}"></circle>
+      </svg>
+      <div class="center-pct">
+        <div class="center-pct-num">${allPct}%</div>
+        <div class="center-pct-lbl">TOTAL DONE</div>
       </div>
-      
-      <div style="display:flex; gap:15px;">
-        <div style="flex:1;">
-          <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:bold; margin-bottom:3px;">
-            <span style="color:var(--kantei);">鑑定理論</span><span>${kPct}%</span>
-          </div>
-          <div class="progress-bar" style="height:8px; margin:0;"><div class="progress-fill" style="width:${kPct}%; background:var(--kantei);"></div></div>
-        </div>
-        <div style="flex:1;">
-          <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:bold; margin-bottom:3px;">
-            <span style="color:var(--gyousei);">行政法規</span><span>${gPct}%</span>
-          </div>
-          <div class="progress-bar" style="height:8px; margin:0;"><div class="progress-fill" style="width:${gPct}%; background:var(--gyousei);"></div></div>
-        </div>
+    </div>
+
+    <div class="ring-legend">
+      <div class="leg-item"><div class="dot" style="background:var(--ring1);"></div>1周目: ${p1}%</div>
+      <div class="leg-item"><div class="dot" style="background:var(--ring2);"></div>2周目: ${p2}%</div>
+      <div class="leg-item"><div class="dot" style="background:var(--ring3);"></div>3周目: ${p3}%</div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top: 15px;">
+      <div class="stat-card" style="flex:1;">
+        <div class="stat-card-title"><span>鑑定理論</span><span style="color:#ffffff;">${kPct}%</span></div>
+        <div class="stat-bar-bg"><div class="progress-fill" style="width:${kPct}%; background:var(--kantei);"></div></div>
+      </div>
+      <div class="stat-card" style="flex:1;">
+        <div class="stat-card-title"><span>行政法規</span><span style="color:#ffffff;">${gPct}%</span></div>
+        <div class="stat-bar-bg"><div class="progress-fill" style="width:${gPct}%; background:var(--gyousei);"></div></div>
       </div>
     </div>
   `;
-
-  // 周回ごとの進捗
-  for(let loop=1; loop<=3; loop++) {
-    let lTotal = 0, lDone = 0;
-    let lkTotal = 0, lkDone = 0;
-    let lgTotal = 0, lgDone = 0;
-
-    allTasksQueue.filter(t => t.loopNum === loop).forEach(t => {
-        let q = t.q;
-        let isDone = !!progressDB[t.uniqueId];
-        lTotal += q; if(isDone) lDone += q;
-        if(t.type === 'kantei') { lkTotal += q; if(isDone) lkDone += q; }
-        else { lgTotal += q; if(isDone) lgDone += q; }
+  
+  // Trigger animation after render
+  setTimeout(() => {
+    document.querySelectorAll('.progress-fill, .ring-fill').forEach(el => {
+      // Just touching it forces reflow to ensure CSS transition fires nicely
+      let unused = el.offsetHeight; 
     });
-
-    let lPct = Math.round((lDone/lTotal)*100)||0;
-    let lkPct = Math.round((lkDone/lkTotal)*100)||0;
-    let lgPct = Math.round((lgDone/lgTotal)*100)||0;
-
-    container.innerHTML += `
-      <div style="margin-bottom: 15px; border-bottom:1px dashed #e2e8f0; padding-bottom:15px;">
-        <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:5px;">
-          <span>第${loop}周目</span><span>${lPct}%</span>
-        </div>
-        <div class="progress-bar" style="height:10px;"><div class="progress-fill" style="width:${lPct}%; background:var(--success);"></div></div>
-        
-        <div style="display:flex; gap:10px; margin-top:8px; font-size:0.75rem;">
-           <div style="flex:1; display:flex; align-items:center; gap:5px;">
-              <span style="width:30px; color:var(--kantei); font-weight:bold;">鑑定</span>
-              <div class="progress-bar" style="flex:1; height:6px; margin:0;"><div class="progress-fill" style="width:${lkPct}%; background:var(--kantei);"></div></div>
-              <span style="width:30px; text-align:right;">${lkPct}%</span>
-           </div>
-           <div style="flex:1; display:flex; align-items:center; gap:5px;">
-              <span style="width:30px; color:var(--gyousei); font-weight:bold;">行政</span>
-              <div class="progress-bar" style="flex:1; height:6px; margin:0;"><div class="progress-fill" style="width:${lgPct}%; background:var(--gyousei);"></div></div>
-              <span style="width:30px; text-align:right;">${lgPct}%</span>
-           </div>
-        </div>
-      </div>
-    `;
-  }
+  }, 50);
 }
 
 function toggleTask(uniqueId, checkbox) {
