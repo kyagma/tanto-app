@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>鑑定士 3-Loop Stratos -CLOUD SYNC-</title>
+<title>鑑定士 3-Loop Stratos</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
@@ -21,7 +21,6 @@
   .header-title { font-size: 1.5rem; font-weight: bold; margin: 5px 0; }
   .status-badge { background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; display: inline-block; margin-top: 5px; }
   
-  /* ローディング画面用 */
   #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(15, 23, 42, 0.9); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
   .spinner { border: 4px solid rgba(255,255,255,0.3); border-radius: 50%; border-top: 4px solid var(--accent); width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
   @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -73,8 +72,8 @@
   .progress-bar { background: #e2e8f0; border-radius: 8px; overflow: hidden; position: relative; }
   .progress-fill { height: 100%; width: 0%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
 
-  .dashboard-dark { background: #0f172a; border-radius: 16px; padding: 25px; color: #f8fafc; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-  .dashboard-title { text-align: center; font-size: 1.1rem; font-weight: bold; color: #cbd5e1; margin-bottom: 20px; }
+  .dashboard-dark { background: #0f172a; border-radius: 16px; padding: 25px 20px; color: #f8fafc; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+  .dashboard-title { text-align: center; font-size: 1.1rem; font-weight: bold; color: #cbd5e1; margin-bottom: 25px; }
   
   .svg-container { display: flex; justify-content: center; position: relative; margin-bottom: 30px; }
   .center-pct { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
@@ -117,13 +116,13 @@
 
 <div id="loading-overlay">
   <div class="spinner"></div>
-  <div>クラウドと同期中...</div>
+  <div>データを読み込み中...</div>
 </div>
 
 <div class="header">
   <div class="header-subtitle">不動産鑑定士 短答式試験</div>
   <div class="header-title">5月17日まで あと <span id="days-exam">--</span>日</div>
-  <div class="status-badge">目標 5/7 まで残り <span id="days-target">--</span>日 (Cloud Sync)</div>
+  <div class="status-badge">目標 5/7 まで残り <span id="days-target">--</span>日 (正式版)</div>
   <button onclick="forceRecalculate()" style="position: absolute; top: 20px; right: 15px; background: rgba(0,0,0,0.2); color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">再計算🔄</button>
 </div>
 
@@ -164,7 +163,7 @@
 
   <div id="tab-schedule" class="tab-content">
     <div class="card">
-      <p style="font-size: 0.85rem; margin-top:0; color: var(--muted);">日付をタップすると、その日のタスク詳細ページへ移動します。<br>※PC/iPhone間でリアルタイムに同期されます。</p>
+      <p style="font-size: 0.85rem; margin-top:0; color: var(--muted);">過去の履歴と今後の予定です。日付をタップするとその日のタスクに移動します。</p>
       <div id="schedule-container"></div>
     </div>
   </div>
@@ -172,38 +171,30 @@
   <div id="tab-progress" class="tab-content">
     <div class="dashboard-dark" id="overall-progress-container">
       </div>
-    
-    <div class="card" style="margin-top: 20px; display: none;">
-        <input type="text" id="export-data">
-        <input type="text" id="import-data">
-    </div>
   </div>
 
 </div>
 
 <script>
 // =========================================================================
-// 🔥 ここにステップ1で取得したFirebase設定を貼り付けます 🔥
+// 🔥 Firebaseと連携させる場合は、以下の情報を書き換えてください 🔥
+// (書き換えない場合は自動的に端末内保存モードで動きます)
 // =========================================================================
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBubIKY437kCfW3UCx91FdDB8Tq-DALsBY",
-  authDomain: "tanto-app.firebaseapp.com",
-  projectId: "tanto-app",
-  storageBucket: "tanto-app.firebasestorage.app",
-  messagingSenderId: "170619092198",
-  appId: "1:170619092198:web:4578d1cf90b92f6da94f27"
+  apiKey: "AIzaSyDDQYNpcxC5cXSeKbXdZvDv37wyKbWXqjM",
+  authDomain: "tanto-app2.firebaseapp.com",
+  projectId: "tanto-app2",
+  storageBucket: "tanto-app2.firebasestorage.app",
+  messagingSenderId: "125175912885",
+  appId: "1:125175912885:web:05d8e2e24d581ebb7b61fc"
 };
 
-
-// Firebaseの初期化
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-// 個人の進捗を保存する専用の場所（ドキュメント）を指定
-const docRef = db.collection("kanteiApp").doc("myProgressData");
+const docRef = db.collection("kanteiApp").doc("myProgressData_official");
 // =========================================================================
 
-// --- 1. マスターデータ ---
 const rawMasterData = [
   { id:'k1', subj:'鑑定理論', type:'kantei', tag:'rank-s', label:'優先度1', title:'総論 第5章 鑑定評価の基本的事項', q:244 },
   { id:'g1', subj:'行政法規', type:'gyousei', tag:'rank-s', label:'Sランク', title:'都市計画法', q:272 },
@@ -252,11 +243,13 @@ const rawMasterData = [
   { id:'g32', subj:'行政法規', type:'gyousei', tag:'rank-d', label:'Dランク', title:'高齢者、障害者等の移動等の円滑化の促進に関する法律', q:31 }
 ];
 
-let progressDB = {}; // Firebaseから取得したデータを格納する変数
+let progressDB = {}; 
 
+// 正式版スケジュール設定
 const examDate = new Date('2026-05-17T00:00:00');
 const targetDate = new Date('2026-05-07T00:00:00');
-const startDate = new Date('2026-04-18T00:00:00'); // プロト用開始日
+const startDate = new Date('2026-04-19T00:00:00'); // ★ 正式開始日を4/19に設定
+
 const todayDate = new Date();
 todayDate.setHours(0,0,0,0);
 
@@ -310,17 +303,21 @@ function buildDynamicSchedule() {
   bucketDates = [];
   let currentBucketIdx = 0;
 
-  // 1. 過去履歴
-  let loopDate = new Date('2026-04-17T00:00:00');
-  while (loopDate < effectiveToday) {
-      let dStr = toDateStr(loopDate);
-      sessionBuckets[currentBucketIdx] = doneByDate[dStr] || [];
-      bucketDates[currentBucketIdx] = dStr;
-      loopDate.setDate(loopDate.getDate() + 1);
-      currentBucketIdx++;
+  // 過去履歴の展開
+  // 過去記録が存在する最も古い日付、または昨日までをループ
+  let datesWithHistory = Object.keys(doneByDate).sort();
+  if (datesWithHistory.length > 0 && new Date(datesWithHistory[0]) < effectiveToday) {
+      let loopDate = new Date(datesWithHistory[0] + 'T00:00:00');
+      while (loopDate < effectiveToday) {
+          let dStr = toDateStr(loopDate);
+          sessionBuckets[currentBucketIdx] = doneByDate[dStr] || [];
+          bucketDates[currentBucketIdx] = dStr;
+          loopDate.setDate(loopDate.getDate() + 1);
+          currentBucketIdx++;
+      }
   }
 
-  // 2. 本日
+  // 本日のバケツ
   todayBucketIndex = currentBucketIdx;
   sessionBuckets[todayBucketIndex] = [...todayDoneTasks];
   bucketDates[todayBucketIndex] = effectiveTodayStr;
@@ -334,8 +331,8 @@ function buildDynamicSchedule() {
   }
   currentBucketIdx++;
 
-  // 3. 未来
-  loopDate = new Date(effectiveToday);
+  // 未来のバケツ
+  let loopDate = new Date(effectiveToday);
   loopDate.setDate(loopDate.getDate() + 1);
   currentQ = 0;
   let futureBucket = [];
@@ -469,7 +466,6 @@ function renderProgressView() {
   
   let allPct = Math.round(((loopDone[0]+loopDone[1]+loopDone[2]) / (loopTotal[0]+loopTotal[1]+loopTotal[2])) * 100) || 0;
 
-  // SVG Stroke Offsets calculation
   let c1 = 377, c2 = 534, c3 = 691;
   let o1 = c1 - (p1 / 100) * c1;
   let o2 = c2 - (p2 / 100) * c2;
@@ -490,7 +486,7 @@ function renderProgressView() {
       </svg>
       <div class="center-pct">
         <div class="center-pct-num">${allPct}%</div>
-        <div class="center-pct-lbl">TOTAL DONE</div>
+        <div class="center-pct-lbl">総合達成率</div>
       </div>
     </div>
     
@@ -548,16 +544,12 @@ function renderProgressView() {
   }, 50);
 }
 
-// --- クラウド保存機能 ---
 function toggleTask(uniqueId, checkbox) {
-  // メモリ上のデータを更新
   progressDB[uniqueId] = checkbox.checked ? globalTodayStr : null;
   if (!checkbox.checked) delete progressDB[uniqueId];
 
-  // クラウドデータベースに同期送信（非同期）
   saveDataToCloud();
 
-  // 見た目の更新
   document.getElementById(`row-${uniqueId}`).classList.toggle('completed', checkbox.checked);
   updateLocalProgress();
   renderProgressView();
@@ -565,10 +557,7 @@ function toggleTask(uniqueId, checkbox) {
 }
 
 function saveDataToCloud() {
-  // 万が一Firebaseの接続が切れていても、ローカルストレージにはバックアップ保存しておく
-  localStorage.setItem("kanteiAppLocalBackup", JSON.stringify(progressDB));
-  
-  // クラウド(Firebase)へ保存
+  localStorage.setItem("kanteiAppLocalBackup_v1", JSON.stringify(progressDB));
   if (docRef) {
     docRef.set(progressDB).catch(error => {
       console.error("クラウド保存エラー:", error);
@@ -585,50 +574,39 @@ function updateLocalProgress() {
 
 function goToDay(idx) { viewingBucketIndex = idx; switchTab('task'); renderTaskView(); renderScheduleView(); window.scrollTo(0,0); }
 function returnToToday() { viewingBucketIndex = todayBucketIndex; renderTaskView(); renderScheduleView(); }
-function forceRecalculate() { buildDynamicSchedule(); renderTaskView(); renderScheduleView(); alert('再計算完了'); }
+function forceRecalculate() { buildDynamicSchedule(); renderTaskView(); renderScheduleView(); alert('最新の進捗でスケジュールを再計算・最適化しました。'); }
 function switchTab(id) {
   document.querySelectorAll('.tab-content, .nav-btn').forEach(el => el.classList.remove('active'));
   document.getElementById(`tab-${id}`).classList.add('active');
   document.getElementById(`tab-btn-${id}`).classList.add('active');
 }
 
-// --- 初期化（クラウドからデータをロードする） ---
 async function init() {
   const overlay = document.getElementById('loading-overlay');
   
   try {
-    // もしFirebaseが設定されていなければエラーを出す
     if (firebaseConfig.apiKey === "YOUR_API_KEY") {
-        throw new Error("Firebaseが設定されていません");
+        throw new Error("Firebase未設定: ローカルモードで起動します");
     }
-
-    // クラウドからデータを取得
     const docSnap = await docRef.get();
     if (docSnap.exists) {
       progressDB = docSnap.data();
     } else {
-      // 初回起動時：ダミーデータを入れる
-      progressDB['L1_k2'] = '2026-04-17';
       await docRef.set(progressDB);
     }
   } catch(error) {
-    console.error("クラウド同期をスキップしました。", error);
-    // エラー時はローカルのバックアップを使う
-    progressDB = JSON.parse(localStorage.getItem("kanteiAppLocalBackup")) || {};
-    if (!progressDB['L1_k2']) progressDB['L1_k2'] = '2026-04-17';
+    console.log(error.message);
+    progressDB = JSON.parse(localStorage.getItem("kanteiAppLocalBackup_v1")) || {};
   }
 
-  // データのロードが終わったらスケジュール構築
   buildDynamicSchedule(); 
   renderTaskView(); 
   renderScheduleView(); 
   renderProgressView(); 
   
-  // ロード画面を消す
   overlay.style.display = 'none';
 }
 
-// アプリ起動
 init();
 </script>
 </body>
